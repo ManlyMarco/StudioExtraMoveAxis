@@ -7,7 +7,9 @@ else {
 }
 
 $copy = $dir + "\copy\BepInEx\plugins" 
-$plugins = $dir + "\BepInEx\plugins"
+$plugins = $dir
+
+New-Item -ItemType Directory -Force -Path ($dir + "\out\")
 
 # Create releases ---------
 function CreateZip ($pluginFile)
@@ -19,11 +21,11 @@ function CreateZip ($pluginFile)
 
     # the replace removes .0 from the end of version up until it hits a non-0 or there are only 2 version parts remaining (e.g. v1.0 v1.0.1)
     $ver = (Get-ChildItem -Path ($copy) -Filter "*.dll" -Recurse -Force)[0].VersionInfo.FileVersion.ToString() -replace "^([\d+\.]+?\d+)[\.0]*$", '${1}'
-
-    Compress-Archive -Path ($copy + "\..\") -Force -CompressionLevel "Optimal" -DestinationPath ($dir + $pluginFile.BaseName + "_" + "v" + $ver + ".zip")
+    
+    Compress-Archive -Path ($copy + "\..\") -Force -CompressionLevel "Optimal" -DestinationPath ($dir + "\out\" + $pluginFile.BaseName + "_" + "v" + $ver + ".zip")
 }
 
-foreach ($pluginFile in Get-ChildItem -Path $plugins) 
+foreach ($pluginFile in Get-ChildItem -Path $plugins -Filter "*.dll") 
 {
     try
     {
