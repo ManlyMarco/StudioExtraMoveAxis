@@ -13,3 +13,5 @@ Inspired by a feature in shortcutsKoi.
 5. Create a new object and click the "Extra" button in the toolbar on the left of the screen. The gizmo should appear in bottom right corner.
 
 You can change how the new gizmo works in plugin settings (settings may vary per game, PH has none).
+
+![preview](https://user-images.githubusercontent.com/39247311/103706067-7ae92100-4fac-11eb-8246-76da09b1f67c.PNG)
