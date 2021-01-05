@@ -21,19 +21,23 @@ namespace StudioExtraMoveAxis
     {
         public const string GUID = "StudioExtraMoveAxis";
         public const string Name = "Extra move axis in bottom right corner";
-        public const string Version = "1.0.0";
+        public const string Version = "1.0";
 
         internal static new ManualLogSource Logger;
 
         private static ConfigEntry<bool> _showGizmo;
+#if !PH
         private static ConfigEntry<bool> _referenceToSelectedObject;
+#endif
 
         private static Harmony _hi;
 
         private static GameObject _gizmoRoot;
         private static GameObject _moveObj, _rotObj, _scaleObj;
         private static GuideMove[] _guideMoves;
+#if !PH
         private static FieldInfo _fTransformRoot;
+#endif
 
         private static HashSet<GuideObject> _selectedObjects;
         private static bool _lastAnySelected;
@@ -48,10 +52,12 @@ namespace StudioExtraMoveAxis
             _showGizmo = Config.Bind("Extra gizmos", "Show extra move gizmo", false,
                 "Show extra set of gizmos in the bottom right corner of the screen. An object must be selected for gizmo to be visible." +
                 "You can use left toolbar to turn the gizmo on or off.");
+#if !PH
             _referenceToSelectedObject = Config.Bind("Extra gizmos", "Use selected object as reference", true,
                 "If true, using the extra XYZ move gizmo is the same as using the default gizmo on the currently selected object (so direction of the arrow may not be the same as direction of movement).\n" +
                 "If false, current camera position is used as the reference frame, so using the extra XYZ gizmo will move the object to where the gizmo arrows are actually pointing.\n" +
                 "Change currently selected object to apply the setting.");
+#endif
 
             if (StudioAPI.StudioLoaded)
             {
@@ -105,8 +111,10 @@ namespace StudioExtraMoveAxis
             var origRoot = Traverse.Create(GuideObjectManager.Instance).Field<GameObject>("objectOriginal").Value;
             if (origRoot == null) throw new ArgumentException("origRoot not found");
 
+#if !PH
             _fTransformRoot = AccessTools.Field(typeof(GuideMove), "transformRoot") ??
                               throw new ArgumentException("Couldn't get transformRoot field");
+#endif
             _selectedObjects = Traverse.Create(Singleton<GuideObjectManager>.Instance)
                                    .Field<HashSet<GuideObject>>("hashSelectObject").Value ??
                                throw new ArgumentException("Couldn't get hashSelectObject");
@@ -175,6 +183,7 @@ namespace StudioExtraMoveAxis
             _lastFov = fov;
         }
 
+#if !PH
         private static void SetMoveRootTr(Transform rootTransform)
         {
             if (!_referenceToSelectedObject.Value)
@@ -190,6 +199,7 @@ namespace StudioExtraMoveAxis
                 //guideMove.onEndDragAction = () => Cursor.lockState = CursorLockMode.None;
             }
         }
+#endif
 
         private static void SetVisibility()
         {
@@ -210,9 +220,13 @@ namespace StudioExtraMoveAxis
             switch (value)
             {
                 case 0:
+#if !PH
                     // Some objects can't be moved
                     var moveIsVisible = Singleton<Studio.Studio>.Instance.workInfo?.visibleAxisTranslation ?? true;
                     _moveObj.SetActiveIfDifferent(moveIsVisible);
+#else
+                    _moveObj.SetActiveIfDifferent(true);
+#endif
                     _rotObj.SetActiveIfDifferent(false);
                     _scaleObj.SetActiveIfDifferent(false);
                     break;
@@ -248,6 +262,7 @@ namespace StudioExtraMoveAxis
                 }
             }
 
+#if !PH
             [HarmonyPostfix]
             [HarmonyPatch(typeof(GuideObjectManager), nameof(GuideObjectManager.SetVisibleTranslation))]
             private static void SetVisibleTranslationHook()
@@ -268,6 +283,7 @@ namespace StudioExtraMoveAxis
 
                 SetVisibility();
             }
+#endif
         }
 
     }
