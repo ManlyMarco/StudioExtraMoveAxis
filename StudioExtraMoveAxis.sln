@@ -19,6 +19,7 @@ Global
 	GlobalSection(SharedMSBuildProjectFiles) = preSolution
 		Common_StudioExtraMoveAxis\Common_StudioExtraMoveAxis.projitems*{0fb4c3f4-775d-41ac-b4ce-777c20e646e5}*SharedItemsImports = 4
 		Common_StudioExtraMoveAxis\Common_StudioExtraMoveAxis.projitems*{1eed118e-d028-4011-a7a5-942d4a5f5135}*SharedItemsImports = 4
+		Common_StudioExtraMoveAxis\Common_StudioExtraMoveAxis.projitems*{46cca87b-d7da-4fd5-9df9-bc758f9e8702}*SharedItemsImports = 4
 		Common_StudioExtraMoveAxis\Common_StudioExtraMoveAxis.projitems*{4976eb64-6d6a-437a-bd01-c84539945616}*SharedItemsImports = 13
 		Common_StudioExtraMoveAxis\Common_StudioExtraMoveAxis.projitems*{b9624140-636e-47d1-bae9-8b5c7170a925}*SharedItemsImports = 4
 		Common_StudioExtraMoveAxis\Common_StudioExtraMoveAxis.projitems*{bfdeeeed-2b75-4c56-bebb-c3ff2cf4b0ef}*SharedItemsImports = 4
