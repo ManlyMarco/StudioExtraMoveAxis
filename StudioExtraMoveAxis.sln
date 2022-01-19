@@ -13,6 +13,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HS2_StudioExtraMoveAxis", "
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PH_StudioExtraMoveAxis", "PH_StudioExtraMoveAxis\PH_StudioExtraMoveAxis.csproj", "{B9624140-636E-47D1-BAE9-8B5C7170A925}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KKS_StudioExtraMoveAxis", "KKS_StudioExtraMoveAxis\KKS_StudioExtraMoveAxis.csproj", "{46CCA87B-D7DA-4FD5-9DF9-BC758F9E8702}"
+EndProject
 Global
 	GlobalSection(SharedMSBuildProjectFiles) = preSolution
 		Common_StudioExtraMoveAxis\Common_StudioExtraMoveAxis.projitems*{0fb4c3f4-775d-41ac-b4ce-777c20e646e5}*SharedItemsImports = 4
@@ -42,6 +44,10 @@ Global
 		{B9624140-636E-47D1-BAE9-8B5C7170A925}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B9624140-636E-47D1-BAE9-8B5C7170A925}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B9624140-636E-47D1-BAE9-8B5C7170A925}.Release|Any CPU.Build.0 = Release|Any CPU
+		{46CCA87B-D7DA-4FD5-9DF9-BC758F9E8702}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{46CCA87B-D7DA-4FD5-9DF9-BC758F9E8702}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{46CCA87B-D7DA-4FD5-9DF9-BC758F9E8702}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{46CCA87B-D7DA-4FD5-9DF9-BC758F9E8702}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
