@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
 using BepInEx;
 using BepInEx.Configuration;
 using BepInEx.Logging;
@@ -61,8 +60,7 @@ namespace StudioExtraMoveAxis
             }
             else
             {
-                var texRes = ResourceUtils.GetEmbeddedResource("toolbar_icon.png", typeof(StudioExtraMoveAxisPlugin).Assembly) ?? throw new ArgumentException("icon resource not found");
-                var buttonTex = texRes.LoadTexture(TextureFormat.DXT5, false) ?? throw new ArgumentException("failed to load icon texture");
+                var buttonTex = ResourceUtils.GetEmbeddedResource("toolbar_icon.png", typeof(StudioExtraMoveAxisPlugin).Assembly).LoadTexture(TextureFormat.DXT5, false);
                 var tgl = CustomToolbarButtons.AddLeftToolbarToggle(buttonTex, _showGizmo.Value, b => _showGizmo.Value = b);
                 _showGizmo.SettingChanged += (o, eventArgs) =>
                 {
@@ -237,6 +235,44 @@ namespace StudioExtraMoveAxis
 
         private static class Hooks
         {
+            #region Cursor lock when dragging
+
+            private static bool _locked;
+
+            [HarmonyPostfix]
+            [HarmonyPatch(typeof(GuideBase), nameof(GuideBase.OnBeginDrag))]
+            private static void OnBeginDragHook(GuideBase __instance/*, PointerEventData eventData*/)
+            {
+                if (_gizmoRoot != null && __instance.transform.parent?.parent == _gizmoRoot.transform)
+                {
+                    _locked = true;
+                    var gc = GameCursor.Instance;
+                    // Save current cursor position and lock it
+                    gc.SetCursorLock(true);
+                    // Stop the game resetting cursor position to the center of the screen on every frame, which breaks how gizmo dragging works
+                    gc.enabled = false;
+                    // Prevent camera script from unlocking the cursor on every frame
+                    FindObjectOfType<Studio.CameraControl>().isCursorLock = false;
+                }
+            }
+
+            [HarmonyPostfix]
+            [HarmonyPatch(typeof(GuideBase), nameof(GuideBase.OnEndDrag))]
+            private static void OnEndDragHook(/*GuideBase __instance*/)
+            {
+                if (_locked)
+                {
+                    GameCursor.Instance.SetCursorLock(false);
+                    _locked = false;
+                    GameCursor.Instance.enabled = true;
+                    FindObjectOfType<Studio.CameraControl>().isCursorLock = true;
+                }
+            }
+
+            #endregion
+
+            #region Attaching our gizmo to stock gizmo code
+
             [HarmonyPrefix]
             [HarmonyPatch(typeof(GuideObjectManager), nameof(GuideObjectManager.mode), MethodType.Setter)]
             private static void SetModeHook(int value, int ___m_Mode)
@@ -267,6 +303,8 @@ namespace StudioExtraMoveAxis
 
                 SetVisibility();
             }
+
+            #endregion
         }
     }
 }
