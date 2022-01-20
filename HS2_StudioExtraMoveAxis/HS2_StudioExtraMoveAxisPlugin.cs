@@ -1,8 +1,9 @@
 ﻿using BepInEx;
+using KKAPI;
 
 namespace StudioExtraMoveAxis
 {
-    [BepInProcess("StudioNEOV2")]
+    [BepInProcess(KoikatuAPI.StudioProcessName)]
     public partial class StudioExtraMoveAxisPlugin : BaseUnityPlugin
     {
     }

@@ -1,7 +1,7 @@
 # StudioExtraMoveAxis
 A plugin for studio in many Illusion games that adds extra move gizmo in bottom right corner. It can be turned on and off with a new button on the left edge of the screen.
 
-Currently supports PH, KK, AI and HS2.
+Currently supports PH, KK, AI, HS2 and KKS.
 
 Inspired by a feature in shortcutsKoi.
 
