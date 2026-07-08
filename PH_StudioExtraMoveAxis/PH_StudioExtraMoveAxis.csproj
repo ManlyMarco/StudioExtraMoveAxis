@@ -61,6 +61,10 @@
       <HintPath>..\packages\IllusionLibs.PlayHome.UnityEngine.5.5.5.4\lib\net35\UnityEngine.dll</HintPath>
       <Private>False</Private>
     </Reference>
+    <Reference Include="UnityEngine.UI, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\IllusionLibs.PlayHome.UnityEngine.UI.5.5.5.4\lib\net35\UnityEngine.UI.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Properties\" />

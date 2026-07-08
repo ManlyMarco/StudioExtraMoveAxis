@@ -348,3 +348,6 @@ MigrationBackup/
 
 # Ionide (cross platform F# VS Code tools) working folder
 .ionide/
+
+# HS1 uses local Illusion game DLLs (not NuGet); never publish game assemblies
+HS1_StudioExtraMoveAxis/*.dll
