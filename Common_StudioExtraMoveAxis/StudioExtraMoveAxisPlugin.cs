@@ -1,16 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-#if !HS1
 using BepInEx;
 using BepInEx.Configuration;
 using BepInEx.Logging;
 using HarmonyLib;
-#else
-using IllusionPlugin;
-using Harmony;
-#endif
-#if !HS1
+#if !HS
 using Illusion.Extensions;
 using KKAPI;
 using KKAPI.Studio;
@@ -23,25 +18,16 @@ using UnityEngine.EventSystems;
 
 namespace StudioExtraMoveAxis
 {
-#if !HS1
-    [DefaultExecutionOrder(32000)]
     [BepInPlugin(GUID, Name, Version)]
+#if !HS
+    [DefaultExecutionOrder(32000)]
     [BepInDependency(KoikatuAPI.GUID, KoikatuAPI.VersionConst)]
-    public partial class StudioExtraMoveAxisPlugin : BaseUnityPlugin
-#else
-    public partial class StudioExtraMoveAxisPlugin : IEnhancedPlugin
 #endif
+    public partial class StudioExtraMoveAxisPlugin : BaseUnityPlugin
     {
         public const string GUID = "StudioExtraMoveAxis";
-#if !HS1
         public const string Name = "Extra move axis in bottom right corner";
         public const string Version = "2.0";
-#endif
-
-#if HS1
-        // IEnhancedPlugin.Filter — restrict loading to Studio executables only
-        public string[] Filter => new string[] { "StudioNEO_32", "StudioNEO_64" };
-#endif
 
 #if KK || KKS
         private static readonly string[] BoneCycleOrder = new string[]
@@ -155,7 +141,7 @@ namespace StudioExtraMoveAxis
             "cf_j_hand_little02_r",
             "cf_j_hand_little03_r",
             // Lower body — bottom-to-top so scroll UP goes toe→foot→leg→hip
-#if HS1
+#if HS
             "Ggmod_J_toes01_R",
 #else
             "cf_j_toes01_r",
@@ -163,7 +149,7 @@ namespace StudioExtraMoveAxis
             "cf_j_foot01_r",
             "cf_j_leglow01_r",
             "cf_j_legup00_r",
-#if HS1
+#if HS
             "Ggmod_J_toes01_L",
 #else
             "cf_j_toes01_l",
@@ -175,53 +161,14 @@ namespace StudioExtraMoveAxis
         };
 #endif
 
-#if !HS1
         internal static new ManualLogSource Logger;
 
         private static ConfigEntry<bool> _showGizmo;
 #if !PH
         private static ConfigEntry<bool> _referenceToSelectedObject;
 #endif
-#else
-        public string Name => "StudioExtraMoveAxis";
-        public string Version => "2.0";
-        public void OnApplicationQuit() { }
-        public void OnLevelWasLoaded(int level) { }
-        public void OnLevelWasInitialized(int level) { }
-        public void OnFixedUpdate() { }
-        public void OnLateUpdate() { HandleExtraGizmoShiftRoll(); }
 
-        public static class Logger
-        {
-            public static void LogDebug(string m) { UnityEngine.Debug.Log("[MoveAxis] DEBUG: " + m); }
-            public static void LogInfo(string m) { UnityEngine.Debug.Log("[MoveAxis] INFO: " + m); }
-            public static void LogWarning(string m) { UnityEngine.Debug.LogWarning("[MoveAxis] WARNING: " + m); }
-            public static void LogError(string m) { UnityEngine.Debug.LogError("[MoveAxis] ERROR: " + m); }
-        }
-
-        private static bool _showGizmoValue = true;
-        private static bool _showGizmo
-        {
-            get { return _showGizmoValue; }
-            set 
-            {
-                if (_showGizmoValue != value)
-                {
-                    _showGizmoValue = value;
-                    SetVisibility();
-                }
-            }
-        }
-#if !PH
-        private static bool _referenceToSelectedObject = true;
-#endif
-#endif
-        
-#if HS1
-        private static HarmonyInstance _hi;
-#else
         private static Harmony _hi;
-#endif
 
         // Diagnostic logging master switch. Left in place for easy reactivation:
         // flip to true to restore the verbose shift-roll / drag tracing.
@@ -241,7 +188,7 @@ namespace StudioExtraMoveAxis
         private static float _lastFov;
         private static int _lastScreenWidth;
         private static int _lastScreenHeight;
-#if HS1
+#if HS
         private static int _lastGizmoMode = -1;
 #endif
 
@@ -249,7 +196,7 @@ namespace StudioExtraMoveAxis
         {
             get
             {
-#if HS1
+#if HS
                 return Studio.Studio.Instance != null;
 #else
                 return StudioAPI.StudioLoaded;
@@ -257,29 +204,21 @@ namespace StudioExtraMoveAxis
             }
         }
 
-#if !HS1
         private void Awake()
         {
             Logger = base.Logger;
-#else
-        public void OnApplicationStart()
-        {
-            Logger.LogInfo("OnApplicationStart triggered!");
-#endif
 
-#if !HS1
             _showGizmo = Config.Bind("Extra gizmos", "Show extra move gizmo", false,
                 "Show extra set of gizmos in the bottom right corner of the screen. An object must be selected for gizmo to be visible." +
                 "You can use left toolbar to turn the gizmo on or off.");
+#if !HS
 #if !PH
             _referenceToSelectedObject = Config.Bind("Extra gizmos", "Use selected object as reference", true,
                 "If true, using the extra XYZ move gizmo is the same as using the default gizmo on the currently selected object (so direction of the arrow may not be the same as direction of movement).\n" +
                 "If false, current camera position is used as the reference frame, so using the extra XYZ gizmo will move the object to where the gizmo arrows are actually pointing.\n" +
                 "Change currently selected object to apply the setting.");
 #endif
-#endif
 
-#if !HS1
             if (StudioAPI.StudioLoaded)
             {
                 // for debug purposes, doesn't get called normally
@@ -298,7 +237,7 @@ namespace StudioExtraMoveAxis
                 StudioAPI.StudioLoadedChanged += (sender, args) => Initialize();
             }
 #else
-            // In HS1, we will poll for Studio load in the Update loop 
+            // In HS, we will poll for Studio load in the Update loop 
             // since scene name might differ and sceneLoaded hook can be unreliable across BepInEx versions.
 #endif
         }
@@ -312,25 +251,16 @@ namespace StudioExtraMoveAxis
         }
 #endif
 
-#if HS1
+#if HS
         private bool _hs1Initialized = false;
 #endif
 
-#if HS1
-        private static bool ShowGizmo => _showGizmoValue;
-        private static void SetShowGizmo(bool val) { _showGizmoValue = val; SetVisibility(); }
-#else
         private static bool ShowGizmo => _showGizmo.Value;
         private static void SetShowGizmo(bool val) { _showGizmo.Value = val; }
-#endif
 
-#if HS1
-        public void OnUpdate()
-#else
         private void Update()
-#endif
         {
-#if HS1
+#if HS
             if (!_hs1Initialized)
             {
 
@@ -351,8 +281,8 @@ namespace StudioExtraMoveAxis
             }
             if (Input.GetKeyDown(KeyCode.M) && (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl)))
             {
-                SetShowGizmo(!_showGizmoValue);
-                Logger.LogInfo("Toggled Extra Move Axis Gizmo: " + _showGizmoValue);
+                SetShowGizmo(!ShowGizmo);
+                Logger.LogInfo("Toggled Extra Move Axis Gizmo: " + ShowGizmo);
             }
 #endif
             if (_selectedObjects == null)
@@ -370,8 +300,8 @@ namespace StudioExtraMoveAxis
                 SetVisibility();
             }
 
-#if HS1
-            // HS1: Harmony 1.x patch on GuideObjectManager.mode setter doesn't fire reliably.
+#if HS
+            // HS: Harmony 1.x patch on GuideObjectManager.mode setter doesn't fire reliably.
             // Poll mode each frame instead.
             var currentMode = GuideObjectManager.Instance.mode;
             if (currentMode != _lastGizmoMode)
@@ -406,14 +336,14 @@ namespace StudioExtraMoveAxis
             HandleBoneScroll();
             HandleMiddleClickReset();
             HandleReverseRotation();
-#if !HS1
+#if !HS
             AdvanceFingerSync();
 #endif
             HandleCustomDrag();
             ApplyRotationRestrictions();
         }
 
-#if !HS1
+#if !HS
         private void LateUpdate()
         {
             HandleFingerTransformOverride();
@@ -633,9 +563,9 @@ namespace StudioExtraMoveAxis
                     // Z-projection constraint math. Hand counter-rotation works without fingers.
                     if (IsHandBone(name))
                     {
-#if !HS1
+#if !HS
                         // HS2+: defer finger writes to drag end (spread sync) to avoid
-                        // ABMX/FKHeight disruption. HS1 uses real-time writes (no FKHeightAdjust).
+                        // ABMX/FKHeight disruption. HS uses real-time writes (no FKHeightAdjust).
                         _rightDragIsHandBone = true;
 #endif
                         string sideSuffix = name.EndsWith("_r") ? "_r" : "_l";
@@ -646,9 +576,9 @@ namespace StudioExtraMoveAxis
                             string bn = bone.guideObject.transformTarget.name.ToLower();
                             if (!bn.EndsWith(sideSuffix)) continue; // skip opposite hand's fingers
                             bool is01 = bn.Contains("index01") || bn.Contains("middle01") ||
-                                        bn.Contains("ring01")  || bn.Contains("little01");
+                                        bn.Contains("ring01") || bn.Contains("little01");
                             bool is02 = bn.Contains("index02") || bn.Contains("middle02") ||
-                                        bn.Contains("ring02")  || bn.Contains("little02");
+                                        bn.Contains("ring02") || bn.Contains("little02");
                             if (is01 || is02)
                             {
                                 _rightDragChildren.Add(new ReverseRotChildInfo
@@ -671,15 +601,15 @@ namespace StudioExtraMoveAxis
             {
                 if (_rightDragIsHandBone && _rightDragChildren != null)
                 {
-#if HS1
-                    // HS1: batch-write all at once. No FKHeightAdjust to disrupt, and
+#if HS
+                    // HS: batch-write all at once. No FKHeightAdjust to disrupt, and
                     // Galatea's tween provides a smooth visual transition.
                     foreach (var child in _rightDragChildren)
                     {
                         child.guideObject.changeAmount.rot = child.targetQuat.eulerAngles;
                     }
 #else
-                    // Non-HS1: spread sync across frames (≤4/frame) to stay under Galatea's
+                    // Non-HS: spread sync across frames (≤4/frame) to stay under Galatea's
                     // bulk-change detection threshold (5 bones). LateUpdate continues to
                     // override finger transforms during sync so FKCtrl doesn't snap them back.
                     _fingerSyncChildren = new List<ReverseRotChildInfo>(_rightDragChildren);
@@ -706,8 +636,8 @@ namespace StudioExtraMoveAxis
             if (shiftNow != _rightDragShiftMode)
             {
                 _rightDragShiftMode = shiftNow;
-                _rightDragStartRot  = _rightDragGuideObject.changeAmount.rot;
-                _rightDragStartPos  = currentMousePos;
+                _rightDragStartRot = _rightDragGuideObject.changeAmount.rot;
+                _rightDragStartPos = currentMousePos;
                 _rightDragParentWorldRot = _rightDragGuideObject.transformTarget?.parent?.rotation ?? Quaternion.identity;
                 _rightDragDirectionSet = false;
                 if (_rightDragChildren != null)
@@ -757,7 +687,7 @@ namespace StudioExtraMoveAxis
                 // then converted to bone-local space via the parent's world rotation captured at drag start.
                 Vector3 camRight = _camera.transform.right;
                 Vector3 camUp = _camera.transform.up;
-                float yawAngle   = -delta.x * sensitivity;
+                float yawAngle = -delta.x * sensitivity;
                 float pitchAngle = delta.y * sensitivity;
                 Quaternion worldDelta = Quaternion.AngleAxis(pitchAngle, camRight) * Quaternion.AngleAxis(yawAngle, camUp);
                 Quaternion localDelta = Quaternion.Inverse(_rightDragParentWorldRot) * worldDelta * _rightDragParentWorldRot;
@@ -902,10 +832,10 @@ namespace StudioExtraMoveAxis
                 ? new Quaternion(maxEuler.x / numMax, 0f, 0f, maxEuler.w / numMax)
                 : Quaternion.identity;
 
-            float halfAngle    = Mathf.Atan2(q.x,    q.w);
+            float halfAngle = Mathf.Atan2(q.x, q.w);
             float halfAngleMax = Mathf.Atan2(qMax.x, qMax.w);
 
-            if (halfAngle * halfAngleMax < 0f)    q = Quaternion.identity; // wrong direction → straight
+            if (halfAngle * halfAngleMax < 0f) q = Quaternion.identity; // wrong direction → straight
             else if (Mathf.Abs(halfAngle) > Mathf.Abs(halfAngleMax)) q = qMax; // past limit → clamp
         }
 
@@ -1280,7 +1210,7 @@ namespace StudioExtraMoveAxis
             }
         }
 
-    // SanitizeAxis removed, using superior Quaternion projection above
+        // SanitizeAxis removed, using superior Quaternion projection above
 
         private static GuideObject _originalSelectedBone;
         private static bool _isShiftScrollingActive;
@@ -1289,14 +1219,14 @@ namespace StudioExtraMoveAxis
         private void CheckHoverExit()
         {
             if (!_isShiftScrollingActive || _gizmoRoot == null) return;
-            
+
             // Pillarboxing breaks strict pixel distances. Use a flexible percentage of the screen height.
             Vector3 gizmoScreenPos = _camera.WorldToScreenPoint(_gizmoRoot.transform.position);
             Vector2 mousePos = new Vector2(Input.mousePosition.x, Input.mousePosition.y);
             Vector2 gizmo2D = new Vector2(gizmoScreenPos.x, gizmoScreenPos.y);
 
             // 35% of the screen height acts as a very generous and flexible "bottom right quadrant" exit boundary
-            if (Vector2.Distance(mousePos, gizmo2D) > (Screen.height * 0.35f)) 
+            if (Vector2.Distance(mousePos, gizmo2D) > (Screen.height * 0.35f))
             {
                 // Revert to original selection
                 if (_originalSelectedBone != null)
@@ -1324,12 +1254,12 @@ namespace StudioExtraMoveAxis
                 scroll = Input.GetAxis("Mouse ScrollWheel");
             }
             catch { }
-            
+
             if (Mathf.Abs(scroll) < 0.01f)
             {
                 scroll = Input.mouseScrollDelta.y;
             }
-            
+
             if (Mathf.Abs(scroll) < 0.01f) return;
             // Logger.LogDebug($"[Scroll] Detected scroll input: {scroll}");
 
@@ -1342,12 +1272,12 @@ namespace StudioExtraMoveAxis
                 _draggedGuideObject = null;
             }
 
-            if (!IsStudioLoaded) 
+            if (!IsStudioLoaded)
             {
                 Logger.LogDebug("[Scroll] Studio is not loaded");
                 return;
             }
-            if (_selectedObjects == null || _selectedObjects.Count == 0) 
+            if (_selectedObjects == null || _selectedObjects.Count == 0)
             {
                 Logger.LogDebug("[Scroll] No selected objects");
                 return;
@@ -1362,19 +1292,19 @@ namespace StudioExtraMoveAxis
 
                 float dist = Vector2.Distance(mousePos, gizmo2D);
                 // About 20% of the screen height gives a nice, generous hover zone around the widget
-                if (dist > (Screen.height * 0.20f)) 
+                if (dist > (Screen.height * 0.20f))
                 {
                     Logger.LogDebug($"[Scroll] Mouse too far from widget. Distance: {dist}, Threshold: {Screen.height * 0.20f}");
                     return;
                 }
             }
-            else 
+            else
             {
                 Logger.LogDebug("[Scroll] Gizmo root is null");
             }
 
             var guide = _selectedObjects.FirstOrDefault(x => x.isActive);
-            if (guide == null || guide.transformTarget == null) 
+            if (guide == null || guide.transformTarget == null)
             {
                 Logger.LogDebug("[Scroll] Selected guide or transformTarget is null");
                 return;
@@ -1415,7 +1345,7 @@ namespace StudioExtraMoveAxis
 
             // Try to find if this is part of a character FK
             List<OCIChar.BoneInfo> charBones = GetFKBonesFromGuide(refGuide);
-            if (charBones == null || charBones.Count == 0) 
+            if (charBones == null || charBones.Count == 0)
             {
                 Logger.LogDebug($"[Scroll] GetFKBonesFromGuide returned null/empty for guide {(refGuide.transformTarget != null ? refGuide.transformTarget.name : "null")}");
                 return;
@@ -1426,9 +1356,9 @@ namespace StudioExtraMoveAxis
             int currentIndex = GetBoneOrderIndex(currentName);
             Logger.LogDebug($"[Scroll] Scroll success. currentName={currentName}, currentIndex={currentIndex}, shiftHeld={shiftHeld}");
 
-            
+
             int step = scroll > 0 ? 1 : -1; // scroll up usually > 0
-            
+
             if (shiftHeld)
             {
                 _shiftScrollDistance += step;
@@ -1516,7 +1446,7 @@ namespace StudioExtraMoveAxis
                     {
                         return ociChar.listBones;
                     }
-#if !HS1
+#if !HS
                     if (tempSel is OCIItem ociItem && ociItem.isFK && ociItem.itemFKCtrl.enabled)
                     {
                         return ociItem.listBones;
@@ -1526,8 +1456,8 @@ namespace StudioExtraMoveAxis
                     {
                         var isFkField = Traverse.Create(ociItem).Field("isFK");
                         var itemFkCtrlField = Traverse.Create(ociItem).Field("itemFKCtrl");
-                        
-                        if (isFkField.FieldExists() && isFkField.GetValue<bool>() && 
+
+                        if (isFkField.FieldExists() && isFkField.GetValue<bool>() &&
                             itemFkCtrlField.FieldExists() && itemFkCtrlField.GetValue<FKCtrl>().enabled)
                         {
                             return Traverse.Create(ociItem).Field("listBones").GetValue<List<OCIChar.BoneInfo>>();
@@ -1535,7 +1465,7 @@ namespace StudioExtraMoveAxis
                     }
 #endif
                 }
-                
+
                 // The FK bone itself doesn't directly map to the Character.
                 // We must traverse up the parent chain to find the Root guide object.
                 currentGuide = currentGuide.parentGuide;
@@ -1557,7 +1487,7 @@ namespace StudioExtraMoveAxis
                         }
                     }
                 }
-#if !HS1
+#if !HS
                 else if (kvp.Value is OCIItem fallbackItem && fallbackItem.isFK && fallbackItem.itemFKCtrl.enabled)
                 {
                     if (fallbackItem.listBones != null)
@@ -1576,8 +1506,8 @@ namespace StudioExtraMoveAxis
                 {
                     var isFkField = Traverse.Create(fallbackItem).Field("isFK");
                     var itemFkCtrlField = Traverse.Create(fallbackItem).Field("itemFKCtrl");
-                    
-                    if (isFkField.FieldExists() && isFkField.GetValue<bool>() && 
+
+                    if (isFkField.FieldExists() && isFkField.GetValue<bool>() &&
                         itemFkCtrlField.FieldExists() && itemFkCtrlField.GetValue<FKCtrl>().enabled)
                     {
                         var listBones = Traverse.Create(fallbackItem).Field("listBones").GetValue<List<OCIChar.BoneInfo>>();
@@ -1611,7 +1541,7 @@ namespace StudioExtraMoveAxis
 
         private static GameObject GetGuideObjectOriginal()
         {
-#if HS1
+#if HS
             return Traverse.Create(GuideObjectManager.Instance).Field("objectOriginal").GetValue<GameObject>();
 #else
             return GuideObjectManager.Instance.objectOriginal;
@@ -1620,7 +1550,7 @@ namespace StudioExtraMoveAxis
 
         internal static HashSet<GuideObject> GetSelectedObjects()
         {
-#if HS1
+#if HS
             return Traverse.Create(GuideObjectManager.Instance).Field("hashSelectObject").GetValue<HashSet<GuideObject>>();
 #else
             return GuideObjectManager.Instance.hashSelectObject;
@@ -1633,13 +1563,13 @@ namespace StudioExtraMoveAxis
 
             _camera = Camera.main;
             if (_camera == null) throw new ArgumentException("Camera.main not found");
-#if HS1
+#if HS
             Logger.LogInfo("Initialize: Camera.main found — " + _camera.name + " cullingMask=" + _camera.cullingMask);
 #endif
 
             var origRoot = GetGuideObjectOriginal();
             if (origRoot == null) throw new ArgumentException("origRoot not found");
-#if HS1
+#if HS
             Logger.LogInfo("Initialize: origRoot found — " + origRoot.name + " childCount=" + origRoot.transform.childCount + " layer=" + origRoot.layer);
             foreach (Transform child in origRoot.transform)
                 Logger.LogInfo("  origRoot child: " + child.name + " layer=" + child.gameObject.layer + " active=" + child.gameObject.activeSelf);
@@ -1653,8 +1583,8 @@ namespace StudioExtraMoveAxis
                 _gizmoRoot.transform.SetParent(_camera.transform, false);
             }
             _gizmoRoot.gameObject.name = "CustomManipulatorGizmo";
-#if HS1
-            // HS1: No camera renders layer 15 (stock gizmo uses custom GL render path).
+#if HS
+            // HS: No camera renders layer 15 (stock gizmo uses custom GL render path).
             // The overlay "Camera" (child of Main Camera) renders layer 16 with clearFlags=Depth,
             // and its PhysicsRaycaster targets layers 15+16 (eventMask=98304).
             // Layer 16 gives us both visibility (overlay camera) AND drag interaction (raycaster).
@@ -1669,9 +1599,9 @@ namespace StudioExtraMoveAxis
             _gizmoRoot.transform.localEulerAngles = new Vector3(17f, 150f, 343f);
 
             var visibleLayer = LayerMask.NameToLayer("Studio/Select");
-#if HS1
+#if HS
             Logger.LogInfo("Initialize: LayerMask.NameToLayer('Studio/Select')=" + visibleLayer);
-            // HS1 uses 'StudioSelect' (no slash), layer 28
+            // HS uses 'StudioSelect' (no slash), layer 28
             int hs1Layer = LayerMask.NameToLayer("StudioSelect");
             Logger.LogInfo("Initialize: LayerMask.NameToLayer('StudioSelect')=" + hs1Layer);
 #endif
@@ -1702,7 +1632,7 @@ namespace StudioExtraMoveAxis
 
                 foreach (var subChild in rootChild.GetComponentsInChildren<Transform>(true))
                 {
-#if HS1
+#if HS
                     subChild.gameObject.layer = 16;
 #else
                     subChild.gameObject.layer = visibleLayer;
@@ -1715,12 +1645,12 @@ namespace StudioExtraMoveAxis
             if (_moveObj == null) throw new ArgumentException("_moveObj not found");
             if (_rotObj == null) throw new ArgumentException("_rotObj not found");
             if (_scaleObj == null) throw new ArgumentException("_scaleObj not found");
-#if HS1
+#if HS
             Logger.LogInfo("Initialize: move/rotation/scale all found. GuideMoves count=" + (_guideMoves?.Length ?? 0));
 #endif
 
-#if HS1
-            // HS1's stock rotation gizmo has no center orb (only X, Y, Z rings).
+#if HS
+            // HS's stock rotation gizmo has no center orb (only X, Y, Z rings).
             // Fabricate one by cloning a ring and replacing its mesh with a sphere.
             {
                 var templateRing = _rotObj.transform.Find("X");
@@ -1780,7 +1710,7 @@ namespace StudioExtraMoveAxis
             SetVisibility(GuideObjectManager.Instance.mode);
 
             _gizmoRoot.SetActiveIfDifferent(true);
-#if HS1
+#if HS
             Logger.LogInfo("Initialize: gizmoRoot active=" + _gizmoRoot.activeSelf
                 + " worldPos=" + _gizmoRoot.transform.position
                 + " localPos=" + _gizmoRoot.transform.localPosition
@@ -1794,20 +1724,14 @@ namespace StudioExtraMoveAxis
             Logger.LogInfo("Initialize: Camera cullingMask includes gizmo layer " + _gizmoRoot.layer + ": " + cameraSeesLayer);
 #endif
 
-#if HS1
-            _hi = HarmonyInstance.Create(GUID);
-            _hi.PatchAll(System.Reflection.Assembly.GetExecutingAssembly());
-            Logger.LogInfo("Initialize: Harmony patches applied via PatchAll(Assembly)");
-#else
             _hi = Harmony.CreateAndPatchAll(typeof(Hooks), GUID);
-#endif
         }
 
         private static void AdjustScaleToFov()
         {
             // Calculate using the camera's actual pixel viewport rect (accommodates letterboxing/aspect ratios)
             var screenPos = new Vector3(_camera.pixelRect.xMin + _camera.pixelWidth * 0.9f, _camera.pixelRect.yMin + _camera.pixelHeight * 0.14f, 6f);
-            
+
             _gizmoRoot.transform.position = _camera.ScreenToWorldPoint(screenPos);
             var fov = _camera.fieldOfView;
             _gizmoRoot.transform.localScale = Vector3.one * (fov / 23f);
@@ -1815,20 +1739,6 @@ namespace StudioExtraMoveAxis
         }
 
 #if !PH
-#if HS1
-        private static void SetMoveRootTr(Transform rootTransform)
-        {
-            if (!_referenceToSelectedObject)
-                rootTransform = _gizmoRoot.transform;
-
-            for (var i = 0; i < _guideMoves.Length; i++)
-            {
-                var guideMove = _guideMoves[i];
-                Traverse.Create(guideMove).Field("moveCalc").SetValue(2); // Equivalent to MoveCalc.TYPE3 in HS1 which is an int or enum 2
-                Traverse.Create(guideMove).Field("transformRoot").SetValue(rootTransform);
-            }
-        }
-#else
         private static void SetMoveRootTr(Transform rootTransform)
         {
             if (!_referenceToSelectedObject.Value)
@@ -1837,11 +1747,15 @@ namespace StudioExtraMoveAxis
             for (var i = 0; i < _guideMoves.Length; i++)
             {
                 var guideMove = _guideMoves[i];
+#if HS
+                Traverse.Create(guideMove).Field("moveCalc").SetValue(2); // Equivalent to MoveCalc.TYPE3 in HS which is an int or enum 2
+                Traverse.Create(guideMove).Field("transformRoot").SetValue(rootTransform);
+#else
                 guideMove.moveCalc = GuideMove.MoveCalc.TYPE3;
                 guideMove.transformRoot = rootTransform;
+#endif
             }
         }
-#endif
 #endif
 
         private static void SetVisibility()
@@ -1867,9 +1781,9 @@ namespace StudioExtraMoveAxis
                 case 0:
 #if !PH
                     // Some objects can't be moved
-#if HS1
+#if HS
                     bool moveIsVisible = true;
-                    try 
+                    try
                     {
                         var workInfo = Traverse.Create(Singleton<Studio.Studio>.Instance).Field("workInfo");
                         if (workInfo != null && workInfo.FieldExists() && workInfo.Field("visibleAxisTranslation").FieldExists())
@@ -1878,10 +1792,10 @@ namespace StudioExtraMoveAxis
                         }
                         else
                         {
-                             Logger.LogWarning("visibleAxisTranslation field not found on workInfo!");
+                            Logger.LogWarning("visibleAxisTranslation field not found on workInfo!");
                         }
-                    } 
-                    catch (Exception ex) 
+                    }
+                    catch (Exception ex)
                     {
                         Logger.LogError("Error getting moveIsVisible: " + ex);
                     }
@@ -1922,7 +1836,7 @@ namespace StudioExtraMoveAxis
 
             private static bool _locked;
 
-            // Prefix, not postfix: on HS1 (Harmony 1.x), the extra gizmo's GuideBase.OnBeginDrag
+            // Prefix, not postfix: on HS (Harmony 1.x), the extra gizmo's GuideBase.OnBeginDrag
             // crashes on null guideObject (we destroyed it). Postfixes don't fire after a crash.
             // Prefix fires before the original, so our flags get set regardless.
             [HarmonyPrefix]
@@ -1953,7 +1867,7 @@ namespace StudioExtraMoveAxis
                     {
                         string name = go.transformTarget.name.ToLower();
                         string constrainedAxis = null;
-                        
+
                         // Discover if bone is constrained
                         if (IsKneeBone(name)) constrainedAxis = "x";
                         else if (IsElbowBone(name)) constrainedAxis = "y";
@@ -2028,7 +1942,7 @@ namespace StudioExtraMoveAxis
                 }
             }
 
-#if !PH && !HS1
+#if !PH && !HS
             [HarmonyPostfix]
             [HarmonyPatch(typeof(GuideObjectManager), nameof(GuideObjectManager.SetVisibleTranslation))]
             private static void SetVisibleTranslationHook()
@@ -2086,7 +2000,7 @@ namespace StudioExtraMoveAxis
             n == "cf_j_kosi01" || n == "cf_j_waist01";
     }
 
-#if HS1
+#if HS
     internal static class HS1Extensions
     {
         public static void SetActiveIfDifferent(this GameObject gameObject, bool active)
