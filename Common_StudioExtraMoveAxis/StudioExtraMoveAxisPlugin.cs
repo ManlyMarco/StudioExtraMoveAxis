@@ -22,7 +22,7 @@ namespace StudioExtraMoveAxis
     {
         public const string GUID = "StudioExtraMoveAxis";
         public const string Name = "Extra move axis in bottom right corner";
-        public const string Version = "2.0";
+        public const string Version = Constants.Version;
 
         // Used for scrolling mouse wheel over the gizmo when a character is selected with FK on
         private static readonly string[] BoneCycleOrder = new string[]

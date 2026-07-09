@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 16
-VisualStudioVersion = 16.0.30804.86
+# Visual Studio Version 17
+VisualStudioVersion = 17.14.37314.3 d17.14
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KK_StudioExtraMoveAxis", "KK_StudioExtraMoveAxis\KK_StudioExtraMoveAxis.csproj", "{BFDEEEED-2B75-4C56-BEBB-C3FF2CF4B0EF}"
 EndProject
@@ -15,15 +15,13 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PH_StudioExtraMoveAxis", "P
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KKS_StudioExtraMoveAxis", "KKS_StudioExtraMoveAxis\KKS_StudioExtraMoveAxis.csproj", "{46CCA87B-D7DA-4FD5-9DF9-BC758F9E8702}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "_Solution", "_Solution", "{02EA681E-C7D8-13C7-8484-4AC65E1B71E8}"
+	ProjectSection(SolutionItems) = preProject
+		Directory.Build.props = Directory.Build.props
+		README.md = README.md
+	EndProjectSection
+EndProject
 Global
-	GlobalSection(SharedMSBuildProjectFiles) = preSolution
-		Common_StudioExtraMoveAxis\Common_StudioExtraMoveAxis.projitems*{0fb4c3f4-775d-41ac-b4ce-777c20e646e5}*SharedItemsImports = 4
-		Common_StudioExtraMoveAxis\Common_StudioExtraMoveAxis.projitems*{1eed118e-d028-4011-a7a5-942d4a5f5135}*SharedItemsImports = 4
-		Common_StudioExtraMoveAxis\Common_StudioExtraMoveAxis.projitems*{46cca87b-d7da-4fd5-9df9-bc758f9e8702}*SharedItemsImports = 4
-		Common_StudioExtraMoveAxis\Common_StudioExtraMoveAxis.projitems*{4976eb64-6d6a-437a-bd01-c84539945616}*SharedItemsImports = 13
-		Common_StudioExtraMoveAxis\Common_StudioExtraMoveAxis.projitems*{b9624140-636e-47d1-bae9-8b5c7170a925}*SharedItemsImports = 4
-		Common_StudioExtraMoveAxis\Common_StudioExtraMoveAxis.projitems*{bfdeeeed-2b75-4c56-bebb-c3ff2cf4b0ef}*SharedItemsImports = 4
-	EndGlobalSection
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
 		Release|Any CPU = Release|Any CPU
@@ -55,5 +53,13 @@ Global
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {EFD2AB04-BE28-41B9-AFCA-09DD65CA6010}
+	EndGlobalSection
+	GlobalSection(SharedMSBuildProjectFiles) = preSolution
+		Common_StudioExtraMoveAxis\Common_StudioExtraMoveAxis.projitems*{0fb4c3f4-775d-41ac-b4ce-777c20e646e5}*SharedItemsImports = 5
+		Common_StudioExtraMoveAxis\Common_StudioExtraMoveAxis.projitems*{1eed118e-d028-4011-a7a5-942d4a5f5135}*SharedItemsImports = 5
+		Common_StudioExtraMoveAxis\Common_StudioExtraMoveAxis.projitems*{46cca87b-d7da-4fd5-9df9-bc758f9e8702}*SharedItemsImports = 5
+		Common_StudioExtraMoveAxis\Common_StudioExtraMoveAxis.projitems*{4976eb64-6d6a-437a-bd01-c84539945616}*SharedItemsImports = 13
+		Common_StudioExtraMoveAxis\Common_StudioExtraMoveAxis.projitems*{b9624140-636e-47d1-bae9-8b5c7170a925}*SharedItemsImports = 5
+		Common_StudioExtraMoveAxis\Common_StudioExtraMoveAxis.projitems*{bfdeeeed-2b75-4c56-bebb-c3ff2cf4b0ef}*SharedItemsImports = 5
 	EndGlobalSection
 EndGlobal
