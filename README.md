@@ -14,4 +14,9 @@ Inspired by a feature in shortcutsKoi.
 
 You can change how the new gizmo works in plugin settings (settings may vary per game, PH has none).
 
+### Advanced features
+- **Right-click drag reverse FK (counter-rotation).** Right-drag a bone to rotate it while its child bones counter-rotate to hold their pose, so downstream limbs stay put. Constrained joints (knees, elbows, thumbs, fingers) lock to their natural axis; hand drags split the counter-rotation across the finger bones.
+- **FK bone cycling** — scroll near the rotation gizmo to step through an FK chain.
+- **Shift-scroll multi-bone selection.**
+
 ![preview](https://user-images.githubusercontent.com/39247311/103706067-7ae92100-4fac-11eb-8246-76da09b1f67c.PNG)
