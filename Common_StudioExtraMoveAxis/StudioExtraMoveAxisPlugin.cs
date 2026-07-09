@@ -5,33 +5,29 @@ using BepInEx;
 using BepInEx.Configuration;
 using BepInEx.Logging;
 using HarmonyLib;
-#if !HS
 using Illusion.Extensions;
 using KKAPI;
 using KKAPI.Studio;
 using KKAPI.Studio.UI;
 using KKAPI.Utilities;
-#endif
 using Studio;
 using UnityEngine;
-using UnityEngine.EventSystems;
 
 namespace StudioExtraMoveAxis
 {
     [BepInPlugin(GUID, Name, Version)]
-#if !HS
-    [DefaultExecutionOrder(32000)]
+    [DefaultExecutionOrder(32000)] // Stop snapbacks during right click drag counterrotation
     [BepInDependency(KoikatuAPI.GUID, KoikatuAPI.VersionConst)]
-#endif
     public partial class StudioExtraMoveAxisPlugin : BaseUnityPlugin
     {
         public const string GUID = "StudioExtraMoveAxis";
         public const string Name = "Extra move axis in bottom right corner";
         public const string Version = "2.0";
 
-#if KK || KKS
+        // Used for scrolling mouse wheel over the gizmo when a character is selected with FK on
         private static readonly string[] BoneCycleOrder = new string[]
         {
+#if KK || KKS
             // Hips is index 0 — skipped during scroll unless currently selected
             "cf_j_hips",
             // Upper body (scroll UP = ascending index)
@@ -89,10 +85,7 @@ namespace StudioExtraMoveAxis
             "cf_j_leg01_l",
             "cf_j_thigh00_l",
             "cf_j_waist01"
-        };
 #else
-        private static readonly string[] BoneCycleOrder = new string[]
-        {
             // Hips is index 0 — skipped during scroll unless currently selected
             "cf_j_hips",
             // Upper body (scroll UP = ascending index)
@@ -141,25 +134,17 @@ namespace StudioExtraMoveAxis
             "cf_j_hand_little02_r",
             "cf_j_hand_little03_r",
             // Lower body — bottom-to-top so scroll UP goes toe→foot→leg→hip
-#if HS
-            "Ggmod_J_toes01_R",
-#else
             "cf_j_toes01_r",
-#endif
             "cf_j_foot01_r",
             "cf_j_leglow01_r",
             "cf_j_legup00_r",
-#if HS
-            "Ggmod_J_toes01_L",
-#else
             "cf_j_toes01_l",
-#endif
             "cf_j_foot01_l",
             "cf_j_leglow01_l",
             "cf_j_legup00_l",
             "cf_j_kosi01"
-        };
 #endif
+        };
 
         internal static new ManualLogSource Logger;
 
@@ -188,21 +173,6 @@ namespace StudioExtraMoveAxis
         private static float _lastFov;
         private static int _lastScreenWidth;
         private static int _lastScreenHeight;
-#if HS
-        private static int _lastGizmoMode = -1;
-#endif
-
-        private static bool IsStudioLoaded
-        {
-            get
-            {
-#if HS
-                return Studio.Studio.Instance != null;
-#else
-                return StudioAPI.StudioLoaded;
-#endif
-            }
-        }
 
         private void Awake()
         {
@@ -211,7 +181,6 @@ namespace StudioExtraMoveAxis
             _showGizmo = Config.Bind("Extra gizmos", "Show extra move gizmo", false,
                 "Show extra set of gizmos in the bottom right corner of the screen. An object must be selected for gizmo to be visible." +
                 "You can use left toolbar to turn the gizmo on or off.");
-#if !HS
 #if !PH
             _referenceToSelectedObject = Config.Bind("Extra gizmos", "Use selected object as reference", true,
                 "If true, using the extra XYZ move gizmo is the same as using the default gizmo on the currently selected object (so direction of the arrow may not be the same as direction of movement).\n" +
@@ -236,61 +205,26 @@ namespace StudioExtraMoveAxis
 
                 StudioAPI.StudioLoadedChanged += (sender, args) => Initialize();
             }
-#else
-            // In HS, we will poll for Studio load in the Update loop 
-            // since scene name might differ and sceneLoaded hook can be unreliable across BepInEx versions.
-#endif
         }
 
 #if DEBUG
         private void OnDestroy()
         {
-            UnityEngine.Object.Destroy(_gizmoRoot);
+            Destroy(_gizmoRoot);
             _hi?.UnpatchAll(_hi.Id);
             _selectedObjects = null;
         }
 #endif
 
-#if HS
-        private bool _hs1Initialized = false;
-#endif
-
-        private static bool ShowGizmo => _showGizmo.Value;
-        private static void SetShowGizmo(bool val) { _showGizmo.Value = val; }
-
         private void Update()
         {
-#if HS
-            if (!_hs1Initialized)
-            {
-
-                if (IsStudioLoaded && GuideObjectManager.Instance != null && GetGuideObjectOriginal() != null)
-                {
-                    try
-                    {
-                        Logger.LogInfo("All initial conditions met, calling Initialize()...");
-                        Initialize();
-                        _hs1Initialized = true;
-                    }
-                    catch (Exception ex)
-                    {
-                        Logger.LogError("Failed to Initialize: " + ex.ToString());
-                    }
-                }
-                return;
-            }
-            if (Input.GetKeyDown(KeyCode.M) && (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl)))
-            {
-                SetShowGizmo(!ShowGizmo);
-                Logger.LogInfo("Toggled Extra Move Axis Gizmo: " + ShowGizmo);
-            }
-#endif
             if (_selectedObjects == null)
             {
-                Logger.LogWarning("_selectedObjects is null!");
+                if (_showGizmo.Value)
+                    Logger.LogWarning("_selectedObjects is null!");
                 return;
             }
-            if (!ShowGizmo) return;
+            if (!_showGizmo.Value) return;
 
             var anySelected = _selectedObjects.Count > 0;
             if (_lastAnySelected != anySelected)
@@ -299,17 +233,6 @@ namespace StudioExtraMoveAxis
                 DiagLog($"Selection state changed. anySelected={anySelected}, Count={_selectedObjects.Count}");
                 SetVisibility();
             }
-
-#if HS
-            // HS: Harmony 1.x patch on GuideObjectManager.mode setter doesn't fire reliably.
-            // Poll mode each frame instead.
-            var currentMode = GuideObjectManager.Instance.mode;
-            if (currentMode != _lastGizmoMode)
-            {
-                _lastGizmoMode = currentMode;
-                SetVisibility(currentMode);
-            }
-#endif
 
             if (_lastFov != _camera.fieldOfView || _lastScreenWidth != _camera.pixelWidth || _lastScreenHeight != _camera.pixelHeight)
             {
@@ -336,20 +259,16 @@ namespace StudioExtraMoveAxis
             HandleBoneScroll();
             HandleMiddleClickReset();
             HandleReverseRotation();
-#if !HS
             AdvanceFingerSync();
-#endif
             HandleCustomDrag();
             ApplyRotationRestrictions();
         }
 
-#if !HS
         private void LateUpdate()
         {
             HandleFingerTransformOverride();
             HandleExtraGizmoShiftRoll();
         }
-#endif
 
         private void HandleMiddleClickReset()
         {
@@ -563,11 +482,10 @@ namespace StudioExtraMoveAxis
                     // Z-projection constraint math. Hand counter-rotation works without fingers.
                     if (IsHandBone(name))
                     {
-#if !HS
                         // HS2+: defer finger writes to drag end (spread sync) to avoid
                         // ABMX/FKHeight disruption. HS uses real-time writes (no FKHeightAdjust).
                         _rightDragIsHandBone = true;
-#endif
+
                         string sideSuffix = name.EndsWith("_r") ? "_r" : "_l";
                         _rightDragChildren.Clear(); // discard any direct-hierarchy finds; rebuild by name
                         foreach (var bone in charBones)
@@ -601,20 +519,11 @@ namespace StudioExtraMoveAxis
             {
                 if (_rightDragIsHandBone && _rightDragChildren != null)
                 {
-#if HS
-                    // HS: batch-write all at once. No FKHeightAdjust to disrupt, and
-                    // Galatea's tween provides a smooth visual transition.
-                    foreach (var child in _rightDragChildren)
-                    {
-                        child.guideObject.changeAmount.rot = child.targetQuat.eulerAngles;
-                    }
-#else
                     // Non-HS: spread sync across frames (≤4/frame) to stay under Galatea's
                     // bulk-change detection threshold (5 bones). LateUpdate continues to
                     // override finger transforms during sync so FKCtrl doesn't snap them back.
                     _fingerSyncChildren = new List<ReverseRotChildInfo>(_rightDragChildren);
                     _fingerSyncIndex = 0;
-#endif
                 }
                 if (_rightDragShiftMode) _shiftRollCooldown = true;
                 _rightDragActive = false;
@@ -915,7 +824,7 @@ namespace StudioExtraMoveAxis
         // writes after Studio's EventSystem callbacks and always wins the last-write race.
         private void HandleExtraGizmoShiftRoll()
         {
-            if (!IsStudioLoaded || _camera == null) return;
+            if (!StudioAPI.StudioLoaded || _camera == null) return;
 
             // Right-click drag owns its own shift-roll path (HandleReverseRotation in Update).
             // Bail here so LateUpdate doesn't stomp it.
@@ -1231,7 +1140,7 @@ namespace StudioExtraMoveAxis
                 // Revert to original selection
                 if (_originalSelectedBone != null)
                 {
-                    foreach (var obj in GetSelectedObjects())
+                    foreach (var obj in GuideObjectManager.Instance.hashSelectObject)
                     {
                         if (obj != _originalSelectedBone)
                         {
@@ -1272,7 +1181,7 @@ namespace StudioExtraMoveAxis
                 _draggedGuideObject = null;
             }
 
-            if (!IsStudioLoaded)
+            if (!StudioAPI.StudioLoaded)
             {
                 Logger.LogDebug("[Scroll] Studio is not loaded");
                 return;
@@ -1391,7 +1300,7 @@ namespace StudioExtraMoveAxis
                     if (nextBone != null)
                     {
                         nextBone.guideObject.isActive = true;
-                        var selectedObjects = GetSelectedObjects();
+                        var selectedObjects = GuideObjectManager.Instance.hashSelectObject;
                         if (!selectedObjects.Contains(nextBone.guideObject))
                         {
                             selectedObjects.Add(nextBone.guideObject);
@@ -1446,24 +1355,10 @@ namespace StudioExtraMoveAxis
                     {
                         return ociChar.listBones;
                     }
-#if !HS
                     if (tempSel is OCIItem ociItem && ociItem.isFK && ociItem.itemFKCtrl.enabled)
                     {
                         return ociItem.listBones;
                     }
-#else
-                    if (tempSel is OCIItem ociItem)
-                    {
-                        var isFkField = Traverse.Create(ociItem).Field("isFK");
-                        var itemFkCtrlField = Traverse.Create(ociItem).Field("itemFKCtrl");
-
-                        if (isFkField.FieldExists() && isFkField.GetValue<bool>() &&
-                            itemFkCtrlField.FieldExists() && itemFkCtrlField.GetValue<FKCtrl>().enabled)
-                        {
-                            return Traverse.Create(ociItem).Field("listBones").GetValue<List<OCIChar.BoneInfo>>();
-                        }
-                    }
-#endif
                 }
 
                 // The FK bone itself doesn't directly map to the Character.
@@ -1487,7 +1382,6 @@ namespace StudioExtraMoveAxis
                         }
                     }
                 }
-#if !HS
                 else if (kvp.Value is OCIItem fallbackItem && fallbackItem.isFK && fallbackItem.itemFKCtrl.enabled)
                 {
                     if (fallbackItem.listBones != null)
@@ -1501,29 +1395,6 @@ namespace StudioExtraMoveAxis
                         }
                     }
                 }
-#else
-                else if (kvp.Value is OCIItem fallbackItem)
-                {
-                    var isFkField = Traverse.Create(fallbackItem).Field("isFK");
-                    var itemFkCtrlField = Traverse.Create(fallbackItem).Field("itemFKCtrl");
-
-                    if (isFkField.FieldExists() && isFkField.GetValue<bool>() &&
-                        itemFkCtrlField.FieldExists() && itemFkCtrlField.GetValue<FKCtrl>().enabled)
-                    {
-                        var listBones = Traverse.Create(fallbackItem).Field("listBones").GetValue<List<OCIChar.BoneInfo>>();
-                        if (listBones != null)
-                        {
-                            foreach (var bone in listBones)
-                            {
-                                if (bone != null && bone.guideObject == guide)
-                                {
-                                    return listBones;
-                                }
-                            }
-                        }
-                    }
-                }
-#endif
             }
 
             return null;
@@ -1539,72 +1410,29 @@ namespace StudioExtraMoveAxis
             return -1;
         }
 
-        private static GameObject GetGuideObjectOriginal()
-        {
-#if HS
-            return Traverse.Create(GuideObjectManager.Instance).Field("objectOriginal").GetValue<GameObject>();
-#else
-            return GuideObjectManager.Instance.objectOriginal;
-#endif
-        }
-
-        internal static HashSet<GuideObject> GetSelectedObjects()
-        {
-#if HS
-            return Traverse.Create(GuideObjectManager.Instance).Field("hashSelectObject").GetValue<HashSet<GuideObject>>();
-#else
-            return GuideObjectManager.Instance.hashSelectObject;
-#endif
-        }
-
         private static void Initialize()
         {
-            if (!IsStudioLoaded) return;
+            if (!StudioAPI.StudioLoaded) return;
 
             _camera = Camera.main;
             if (_camera == null) throw new ArgumentException("Camera.main not found");
-#if HS
-            Logger.LogInfo("Initialize: Camera.main found — " + _camera.name + " cullingMask=" + _camera.cullingMask);
-#endif
 
-            var origRoot = GetGuideObjectOriginal();
+            var origRoot = GuideObjectManager.Instance.objectOriginal;
             if (origRoot == null) throw new ArgumentException("origRoot not found");
-#if HS
-            Logger.LogInfo("Initialize: origRoot found — " + origRoot.name + " childCount=" + origRoot.transform.childCount + " layer=" + origRoot.layer);
-            foreach (Transform child in origRoot.transform)
-                Logger.LogInfo("  origRoot child: " + child.name + " layer=" + child.gameObject.layer + " active=" + child.gameObject.activeSelf);
-#endif
 
-            _selectedObjects = GetSelectedObjects() ?? throw new ArgumentException("Couldn't get hashSelectObject");
+            _selectedObjects = GuideObjectManager.Instance.hashSelectObject ?? throw new ArgumentException("Couldn't get hashSelectObject");
 
-            _gizmoRoot = UnityEngine.Object.Instantiate(origRoot, _camera.transform.position, _camera.transform.rotation) as GameObject;
-            if (_gizmoRoot != null)
-            {
-                _gizmoRoot.transform.SetParent(_camera.transform, false);
-            }
+            _gizmoRoot = Instantiate(origRoot, _camera.transform);
             _gizmoRoot.gameObject.name = "CustomManipulatorGizmo";
-#if HS
-            // HS: No camera renders layer 15 (stock gizmo uses custom GL render path).
-            // The overlay "Camera" (child of Main Camera) renders layer 16 with clearFlags=Depth,
-            // and its PhysicsRaycaster targets layers 15+16 (eventMask=98304).
-            // Layer 16 gives us both visibility (overlay camera) AND drag interaction (raycaster).
-            _gizmoRoot.layer = 16;
-#endif
 
             var go = _gizmoRoot.GetComponent<GuideObject>();
-            UnityEngine.Object.Destroy(go);
+            Destroy(go);
 
             AdjustScaleToFov();
 
             _gizmoRoot.transform.localEulerAngles = new Vector3(17f, 150f, 343f);
 
             var visibleLayer = LayerMask.NameToLayer("Studio/Select");
-#if HS
-            Logger.LogInfo("Initialize: LayerMask.NameToLayer('Studio/Select')=" + visibleLayer);
-            // HS uses 'StudioSelect' (no slash), layer 28
-            int hs1Layer = LayerMask.NameToLayer("StudioSelect");
-            Logger.LogInfo("Initialize: LayerMask.NameToLayer('StudioSelect')=" + hs1Layer);
-#endif
             foreach (Transform rootChild in _gizmoRoot.transform)
             {
                 switch (rootChild.name)
@@ -1623,7 +1451,7 @@ namespace StudioExtraMoveAxis
                         break;
 
                     default:
-                        UnityEngine.Object.Destroy(rootChild.gameObject);
+                        Destroy(rootChild.gameObject);
                         break;
                 }
 
@@ -1632,11 +1460,7 @@ namespace StudioExtraMoveAxis
 
                 foreach (var subChild in rootChild.GetComponentsInChildren<Transform>(true))
                 {
-#if HS
-                    subChild.gameObject.layer = 16;
-#else
                     subChild.gameObject.layer = visibleLayer;
-#endif
                     // Fix center point gizmos being disabled in some games
                     subChild.gameObject.SetActiveIfDifferent(true);
                 }
@@ -1645,84 +1469,10 @@ namespace StudioExtraMoveAxis
             if (_moveObj == null) throw new ArgumentException("_moveObj not found");
             if (_rotObj == null) throw new ArgumentException("_rotObj not found");
             if (_scaleObj == null) throw new ArgumentException("_scaleObj not found");
-#if HS
-            Logger.LogInfo("Initialize: move/rotation/scale all found. GuideMoves count=" + (_guideMoves?.Length ?? 0));
-#endif
-
-#if HS
-            // HS's stock rotation gizmo has no center orb (only X, Y, Z rings).
-            // Fabricate one by cloning a ring and replacing its mesh with a sphere.
-            {
-                var templateRing = _rotObj.transform.Find("X");
-                if (templateRing != null)
-                {
-                    var centerOrb = UnityEngine.Object.Instantiate(templateRing.gameObject) as GameObject;
-                    centerOrb.transform.SetParent(_rotObj.transform, false);
-                    centerOrb.name = "C";
-                    centerOrb.transform.localPosition = Vector3.zero;
-                    centerOrb.transform.localRotation = Quaternion.identity;
-                    centerOrb.transform.localScale = Vector3.one * 0.12f;
-
-                    // Replace ring mesh with sphere
-                    var tempSphere = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-                    centerOrb.GetComponent<MeshFilter>().sharedMesh = tempSphere.GetComponent<MeshFilter>().sharedMesh;
-                    UnityEngine.Object.Destroy(tempSphere);
-
-                    // Replace MeshCollider with SphereCollider for proper center-point raycasting
-                    var oldCollider = centerOrb.GetComponent<MeshCollider>();
-                    if (oldCollider != null) UnityEngine.Object.Destroy(oldCollider);
-                    var sc = centerOrb.AddComponent<SphereCollider>();
-                    sc.radius = 0.5f;
-
-                    // Neutral grey material
-                    var orbRenderer = centerOrb.GetComponent<Renderer>();
-                    if (orbRenderer != null)
-                    {
-                        var mat = new Material(Shader.Find("Standard"));
-                        mat.SetFloat("_Mode", 3); // Transparent
-                        mat.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.SrcAlpha);
-                        mat.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
-                        mat.SetInt("_ZWrite", 0);
-                        mat.DisableKeyword("_ALPHATEST_ON");
-                        mat.EnableKeyword("_ALPHABLEND_ON");
-                        mat.DisableKeyword("_ALPHAPREMULTIPLY_ON");
-                        mat.renderQueue = 3000;
-                        mat.color = new Color(0.6f, 0.6f, 0.6f, 0.8f);
-                        orbRenderer.material = mat;
-                    }
-
-                    // Destroy ALL stock drag components — GuideRotation does X-only rotation,
-                    // and GuideBase.OnBeginDrag crashes on null guideObject (killing Harmony postfixes).
-                    // CenterOrbDragHandler handles drag directly via EventSystem, like the move center cube.
-                    var clonedGR = centerOrb.GetComponent<GuideRotation>();
-                    if (clonedGR != null) UnityEngine.Object.DestroyImmediate(clonedGR);
-                    var clonedGB = centerOrb.GetComponent<GuideBase>();
-                    if (clonedGB != null) UnityEngine.Object.DestroyImmediate(clonedGB);
-                    centerOrb.AddComponent<CenterOrbDragHandler>();
-
-                    centerOrb.layer = 16;
-                    centerOrb.SetActiveIfDifferent(true);
-                    Logger.LogInfo("Fabricated rotation center orb 'C' with CenterOrbDragHandler");
-                }
-            }
-#endif
 
             SetVisibility(GuideObjectManager.Instance.mode);
 
             _gizmoRoot.SetActiveIfDifferent(true);
-#if HS
-            Logger.LogInfo("Initialize: gizmoRoot active=" + _gizmoRoot.activeSelf
-                + " worldPos=" + _gizmoRoot.transform.position
-                + " localPos=" + _gizmoRoot.transform.localPosition
-                + " layer=" + _gizmoRoot.layer);
-            Logger.LogInfo("Initialize: _moveObj active=" + _moveObj.activeSelf + " layer=" + _moveObj.layer);
-            Logger.LogInfo("Initialize: _rotObj active=" + _rotObj.activeSelf + " layer=" + _rotObj.layer);
-            Logger.LogInfo("Initialize: _scaleObj active=" + _scaleObj.activeSelf + " layer=" + _scaleObj.layer);
-            Logger.LogInfo("Initialize: ShowGizmo=" + ShowGizmo + " _lastAnySelected=" + _lastAnySelected + " mode=" + GuideObjectManager.Instance.mode);
-            // Check if camera culling mask includes the gizmo's layer
-            bool cameraSeesLayer = (_camera.cullingMask & (1 << _gizmoRoot.layer)) != 0;
-            Logger.LogInfo("Initialize: Camera cullingMask includes gizmo layer " + _gizmoRoot.layer + ": " + cameraSeesLayer);
-#endif
 
             _hi = Harmony.CreateAndPatchAll(typeof(Hooks), GUID);
         }
@@ -1747,13 +1497,8 @@ namespace StudioExtraMoveAxis
             for (var i = 0; i < _guideMoves.Length; i++)
             {
                 var guideMove = _guideMoves[i];
-#if HS
-                Traverse.Create(guideMove).Field("moveCalc").SetValue(2); // Equivalent to MoveCalc.TYPE3 in HS which is an int or enum 2
-                Traverse.Create(guideMove).Field("transformRoot").SetValue(rootTransform);
-#else
                 guideMove.moveCalc = GuideMove.MoveCalc.TYPE3;
                 guideMove.transformRoot = rootTransform;
-#endif
             }
         }
 #endif
@@ -1768,7 +1513,7 @@ namespace StudioExtraMoveAxis
             if (_moveObj == null || _rotObj == null || _scaleObj == null) return;
 
             //todo add setting
-            if (!_lastAnySelected || !ShowGizmo)
+            if (!_lastAnySelected || !_showGizmo.Value)
             {
                 _moveObj.SetActiveIfDifferent(false);
                 _rotObj.SetActiveIfDifferent(false);
@@ -1781,28 +1526,7 @@ namespace StudioExtraMoveAxis
                 case 0:
 #if !PH
                     // Some objects can't be moved
-#if HS
-                    bool moveIsVisible = true;
-                    try
-                    {
-                        var workInfo = Traverse.Create(Singleton<Studio.Studio>.Instance).Field("workInfo");
-                        if (workInfo != null && workInfo.FieldExists() && workInfo.Field("visibleAxisTranslation").FieldExists())
-                        {
-                            moveIsVisible = workInfo.Field("visibleAxisTranslation").GetValue<bool>();
-                        }
-                        else
-                        {
-                            Logger.LogWarning("visibleAxisTranslation field not found on workInfo!");
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        Logger.LogError("Error getting moveIsVisible: " + ex);
-                    }
-                    Logger.LogInfo($"SetVisibility: moveIsVisible={moveIsVisible}");
-#else
                     var moveIsVisible = Singleton<Studio.Studio>.Instance.workInfo?.visibleAxisTranslation ?? true;
-#endif
                     _moveObj.SetActiveIfDifferent(moveIsVisible);
 #else
                     _moveObj.SetActiveIfDifferent(true);
@@ -1836,12 +1560,9 @@ namespace StudioExtraMoveAxis
 
             private static bool _locked;
 
-            // Prefix, not postfix: on HS (Harmony 1.x), the extra gizmo's GuideBase.OnBeginDrag
-            // crashes on null guideObject (we destroyed it). Postfixes don't fire after a crash.
-            // Prefix fires before the original, so our flags get set regardless.
-            [HarmonyPrefix]
+            [HarmonyPostfix]
             [HarmonyPatch(typeof(GuideBase), nameof(GuideBase.OnBeginDrag))]
-            private static bool OnBeginDragHook(GuideBase __instance/*, PointerEventData eventData*/)
+            private static void OnBeginDragHook(GuideBase __instance/*, PointerEventData eventData*/)
             {
                 if (_gizmoRoot != null && __instance.transform.parent?.parent == _gizmoRoot.transform)
                 {
@@ -1886,12 +1607,11 @@ namespace StudioExtraMoveAxis
                         }
                     }
                 }
-                return true; // always let original run
             }
 
-            [HarmonyPrefix]
+            [HarmonyPostfix]
             [HarmonyPatch(typeof(GuideBase), nameof(GuideBase.OnEndDrag))]
-            private static bool OnEndDragHook(/*GuideBase __instance*/)
+            private static void OnEndDragHook(/*GuideBase __instance*/)
             {
                 _extraGizmoDragActive = false;
                 if (_locked)
@@ -1899,9 +1619,8 @@ namespace StudioExtraMoveAxis
                     GameCursor.Instance.SetCursorLock(false);
                     _locked = false;
                     GameCursor.Instance.enabled = true;
-                    UnityEngine.Object.FindObjectOfType<Studio.CameraControl>().isCursorLock = true;
+                    FindObjectOfType<Studio.CameraControl>().isCursorLock = true;
                 }
-                return true; // always let original run
             }
 
             // Suppress Studio's native axis-ring rotation during extra-gizmo shift-roll.
@@ -1942,7 +1661,7 @@ namespace StudioExtraMoveAxis
                 }
             }
 
-#if !PH && !HS
+#if !PH
             [HarmonyPostfix]
             [HarmonyPatch(typeof(GuideObjectManager), nameof(GuideObjectManager.SetVisibleTranslation))]
             private static void SetVisibleTranslationHook()
@@ -1966,6 +1685,7 @@ namespace StudioExtraMoveAxis
 #endif
             #endregion
         }
+
         // --- Bone role helpers: work for both HS2 and KK naming conventions ---
         // HS2: cf_J_LegLow01_R → "leglow01_r"   KK: cf_j_leg01_R → "leg01_r"
         // All inputs must be .ToLower()'d already.
@@ -1999,110 +1719,4 @@ namespace StudioExtraMoveAxis
         private static bool IsPelvisBone(string n) =>
             n == "cf_j_kosi01" || n == "cf_j_waist01";
     }
-
-#if HS
-    internal static class HS1Extensions
-    {
-        public static void SetActiveIfDifferent(this GameObject gameObject, bool active)
-        {
-            if (gameObject.activeSelf != active)
-                gameObject.SetActive(active);
-        }
-    }
-
-    /// <summary>
-    /// Handles drag events directly on the fabricated center orb via Unity's EventSystem.
-    /// Bypasses GuideBase/GuideRotation entirely — those crash on null guideObject or only
-    /// rotate on one axis. Uses camera-relative trackball rotation that naturally produces
-    /// all 3 axes based on drag direction, just like the translation center cube handles XYZ.
-    /// </summary>
-    internal class CenterOrbDragHandler : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHandler
-    {
-        private Vector2 _startMousePos;
-        private Quaternion _startRotQ;
-        private Quaternion _parentWorldRot;
-        private GuideObject _targetGuide;
-        private bool _dragging;
-        private bool _wasInShiftRoll;
-
-        public void OnBeginDrag(PointerEventData eventData)
-        {
-            var selectedObjects = StudioExtraMoveAxisPlugin.GetSelectedObjects();
-            _targetGuide = selectedObjects?.FirstOrDefault(x => x.isActive);
-            if (_targetGuide == null || _targetGuide.transformTarget == null) return;
-
-            _startMousePos = eventData.position;
-            _startRotQ = Quaternion.Euler(_targetGuide.changeAmount.rot);
-            _parentWorldRot = _targetGuide.transformTarget.parent?.rotation ?? Quaternion.identity;
-            _dragging = true;
-            _wasInShiftRoll = false;
-
-            // Signal the shift-roll system so HandleExtraGizmoShiftRoll() can engage
-            StudioExtraMoveAxisPlugin._extraGizmoDragActive = true;
-
-            // Lock cursor so camera doesn't orbit while we drag
-            GameCursor.Instance.SetCursorLock(true);
-            GameCursor.Instance.enabled = false;
-            UnityEngine.Object.FindObjectOfType<Studio.CameraControl>().isCursorLock = false;
-        }
-
-        public void OnDrag(PointerEventData eventData)
-        {
-            if (!_dragging || _targetGuide == null) return;
-
-            bool inShiftRoll = StudioExtraMoveAxisPlugin._extraGizmoShiftRollMode;
-
-            // When shift-roll mode is active, HandleExtraGizmoShiftRoll() in LateUpdate
-            // handles the rotation — suppress trackball rotation here to avoid conflicts.
-            if (inShiftRoll)
-            {
-                _wasInShiftRoll = true;
-                return;
-            }
-
-            // Re-anchor when transitioning out of shift-roll so trackball resumes
-            // from the current rotation rather than snapping back to the pre-roll baseline.
-            if (_wasInShiftRoll)
-            {
-                _wasInShiftRoll = false;
-                _startMousePos = eventData.position;
-                _startRotQ = Quaternion.Euler(_targetGuide.changeAmount.rot);
-                _parentWorldRot = _targetGuide.transformTarget.parent?.rotation ?? Quaternion.identity;
-                return; // skip this frame to avoid zero-delta jump
-            }
-
-            Vector2 delta = eventData.position - _startMousePos;
-            if (delta.magnitude < 2f) return;
-
-            // Camera-relative trackball: the rotation axis is perpendicular to the drag
-            // direction in screen space. This naturally produces X, Y, and Z rotations
-            // depending on how the user drags (horizontal, vertical, or diagonal).
-            var cam = Camera.main;
-            Vector3 camRight = cam.transform.right;
-            Vector3 camUp = cam.transform.up;
-
-            float sensitivity = 0.5f;
-            float yawAngle = -delta.x * sensitivity;
-            float pitchAngle = delta.y * sensitivity;
-            Quaternion worldDelta = Quaternion.AngleAxis(pitchAngle, camRight) * Quaternion.AngleAxis(yawAngle, camUp);
-
-            // Convert world-space rotation to bone-local (changeAmount) space
-            Quaternion localDelta = Quaternion.Inverse(_parentWorldRot) * worldDelta * _parentWorldRot;
-            _targetGuide.changeAmount.rot = (localDelta * _startRotQ).eulerAngles;
-        }
-
-        public void OnEndDrag(PointerEventData eventData)
-        {
-            if (!_dragging) return;
-            _dragging = false;
-
-            StudioExtraMoveAxisPlugin._extraGizmoDragActive = false;
-
-            GameCursor.Instance.SetCursorLock(false);
-            GameCursor.Instance.enabled = true;
-            UnityEngine.Object.FindObjectOfType<Studio.CameraControl>().isCursorLock = true;
-            _targetGuide = null;
-        }
-    }
-#endif
 }
