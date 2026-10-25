@@ -10,6 +10,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="$(MSBuildThisFileDirectory)StudioExtraMoveAxisPlugin.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)RotationUndo.cs" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="$(MSBuildThisFileDirectory)toolbar_icon.png" />
