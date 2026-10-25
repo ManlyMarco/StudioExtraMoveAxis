@@ -20,9 +20,3 @@ You can change how the new gizmo works in plugin settings (settings may vary per
 - **Shift-scroll multi-bone selection.**
 
 ![preview](https://user-images.githubusercontent.com/39247311/103706067-7ae92100-4fac-11eb-8246-76da09b1f67c.PNG)
-
-### Undo and redo
-
-Grouped undo/redo modifications by Freelancer604, 2026-10-10, under the existing GPLv3 license. A rotation drag records one Studio history action, including reverse-FK children and Shift roll. Middle-click reset records the selected bones and any compensated children together. Undo or redo finishes an active owned drag before restoring history.
-
-The source-level regression checks run with PowerShell 7: `pwsh -NoProfile -File tests/UndoRegression.ps1`. These checks use engine doubles; live Studio testing is still required for pose and frame-timing validation.

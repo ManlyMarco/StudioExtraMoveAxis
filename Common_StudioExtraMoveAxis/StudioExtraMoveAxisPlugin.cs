@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using BepInEx;
@@ -1614,8 +1614,11 @@ namespace StudioExtraMoveAxis
                         else if (IsThumbTipBone(name)) constrainedAxis = "y";
                         else if (IsFingerMidSegment(name)) constrainedAxis = "z";
 
-                        if (constrainedAxis != null && !_rightDragActive)
+                        if (constrainedAxis != null && !_rightDragActive && IsLeftRotationPointer(__0))
                         {
+                            // GuideSelect markers can bend an unselected joint without native history.
+                            BeginRotationUndo(0, __instance);
+                            TrackRotationUndo(go);
                             _customDragActive = true;
                             _draggedGuideObject = go;
                             _dragStartPos = new Vector2(Input.mousePosition.x, Input.mousePosition.y);
@@ -1642,6 +1645,18 @@ namespace StudioExtraMoveAxis
                     FindObjectOfType<Studio.CameraControl>().isCursorLock = true;
                 }
                 return true;
+            }
+
+            [HarmonyPostfix]
+            [HarmonyPatch(typeof(GuideBase), nameof(GuideBase.OnEndDrag))]
+            private static void ConstrainedDragEnd(GuideBase __instance, object __0)
+            {
+                // Keep the zero-argument cursor hook above compatible with Drag-Doll.
+                // GuideRotation calls this base method inside its own release; its outer
+                // hooks retain ownership until the duplicate native command is suppressed.
+                if (__instance is GuideRotation || _rotationUndoSource != __instance || !IsLeftRotationPointer(__0)) return;
+                FinishRotationBeforeHistory();
+                _rotationUndoSource = null;
             }
 
             // Suppress Studio's native axis-ring rotation during extra-gizmo shift-roll.
